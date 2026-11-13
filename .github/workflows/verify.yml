@@ -1,8 +1,11 @@
-name: Verify artwork
+name: Verify and publish artwork
 on:
   push:
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   deterministic-png:
@@ -12,11 +15,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Run deterministic PNG checks
+      - name: Run generator twice and compare exact bytes
         run: |
           mkdir -p /output
           python main.py
           cp /output/entry.png /tmp/entry-first.png
           python main.py
           cmp /tmp/entry-first.png /output/entry.png
-          python verify.py
+      - name: Validate PNG and reproducibility
+        run: python verify.py
+      - name: Add generated PNG to repository
+        if: github.event_name != 'pull_request'
+        run: |
+          cp /output/entry.png entry.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add entry.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Add verified generated artwork"
+            git push
+          fi
