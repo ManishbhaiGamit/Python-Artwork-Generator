@@ -17,7 +17,8 @@ jobs:
           python-version: "3.13"
       - name: Run generator twice and compare exact bytes
         run: |
-          mkdir -p /output
+          sudo mkdir -p /output
+          sudo chown "$USER" /output
           python main.py
           cp /output/entry.png /tmp/entry-first.png
           python main.py
